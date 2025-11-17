@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: auth-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: nexintain-auth
+    volumes:
+      - mongo_data:/data/db
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev # Use Dockerfile for development
+    container_name: auth-service
+    restart: always
+    depends_on:
+      - mongo
+    ports:
+      - "4000:4000"
+    env_file:
+    - .env
+    volumes:
+      - .:/app #comment for production
+      - /app/node_modules
+
+volumes:
+  mongo_data:
