@@ -12,6 +12,7 @@ import { OTP_EXPIRY_MINUTES } from "../constants/auth.constants";
 import { DecodedToken, Tokens } from "../types/auth.types";
 import { ENV } from "../config/env";
 import jwt from 'jsonwebtoken';
+import { MESSAGES } from "../constants/messages.constants";
 
 export async function sendMobileOtp(
   country_code: string,
@@ -58,7 +59,7 @@ export async function verifyMobileOtp(
 export const loginWithEmail = async (email: string, password: string) => {
   const user = await User.findOne({ email });
   console.log("User found for email login:", user);
-  if (!user || !user?.email) throw new Error("User not found");
+  if (!user || !user?.email) throw new Error(MESSAGES.ERR_USER_NOT_FOUND);
 
   if (!user.password)
     throw new Error(
@@ -91,7 +92,7 @@ export const refreshTokens = async (
     throw new Error("Invalid refresh token payload");
 
   const user = await User.findById(payload?.userId);
-  if (!user) throw new Error("User not found");
+  if (!user) throw new Error(MESSAGES.ERR_USER_NOT_FOUND);
   if (!user.refreshTokens?.includes(oldRefreshToken))
     throw new Error("Refresh token invalid");
 
@@ -112,18 +113,18 @@ export const setPasswordService = async (token: string, password: string) => {
   try {
     decoded = jwt.verify(token, ENV.JWT_ACCESS_SECRET) as DecodedToken;
   } catch (err) {
-    throw new Error("Invalid or expired token");
+    throw new Error(MESSAGES.ERR_INVALID_OR_EXPIRED_TOKEN);
   }
 
   // 2. Ensure correct token purpose
   if (decoded.purpose !== "set_password") {
-    throw new Error("Wrong token type");
+    throw new Error(MESSAGES.ERR_WRONG_TOKEN_TYPE);
   }
 
   // 3. Fetch user
   const user = await User.findOne({ email: decoded.email });
   if (!user) {
-    throw new Error("User not found");
+    throw new Error(MESSAGES.ERR_USER_NOT_FOUND);
   }
 
   // 4. Hash and save password

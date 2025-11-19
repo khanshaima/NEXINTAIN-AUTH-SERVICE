@@ -8,6 +8,7 @@ import { ENV } from "../config/env";
 import { googleLoginOrSignupWithGoogleData } from "../services/googleAuth.service";
 import { google } from "googleapis";
 import { handleControllerError } from "../utils/handleControllerError";
+import { MESSAGES } from "../constants/messages.constants";
 
 const client = new OAuth2Client(
   ENV.GOOGLE_CLIENT_ID,
@@ -22,7 +23,7 @@ export const sendOtpController = async (req: Request, res: Response) => {
     console.log(`Sent OTP: ${otp} to mobile: ${country_code??DEFAULT_COUNTRY_CODE}${mobile_number}`);
     return res.json({
       success: true,
-      message: "OTP sent successfully",
+      message: MESSAGES.OTP_SENT,
       expiresAt
     });
 
@@ -38,7 +39,7 @@ export const verifyOtpController = async (req: Request, res: Response) => {
     const user = await verifyMobileOtp(country_code ?? DEFAULT_COUNTRY_CODE, mobile_number, otp);
 
     if (!user) {
-      return res.status(400).json({ success: false, message: "Invalid OTP" });
+      return res.status(400).json({ success: false, message: MESSAGES.OTP_INVALID });
     }
 
     return res.json({ success: true, message: `OTP verified, Welcome ${user.name??'New User, please sign up'}.` });
@@ -54,7 +55,7 @@ export const loginWithEmailController = async (req: Request, res: Response) => {
     const { accessToken, refreshToken, name  } = await loginWithEmail(email, password);
     return res.json({
       success: true,
-      message: "Email login successful",
+      message: MESSAGES.EMAIL_LOGIN_SUCCESS,
       data: { accessToken, refreshToken, name  } 
     });
 
@@ -82,7 +83,7 @@ export const googleAuthUrlController = (req: Request, res: Response) => {
 
   const url = `${GOOGLE_ACCOUNT_BASE_URL}?response_type=code&client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${process.env.BACKEND_URL}/auth/google/callback&scope=${scope}&access_type=offline`;
     
-  res.json({ success: true, message:"Please verify using the url",url });
+  res.json({ success: true, message: MESSAGES.GOOGLE_LOGIN_URL_PROMPT, url });
   } catch (error: unknown) {
     return handleControllerError(res, error);
   }
@@ -126,7 +127,7 @@ export const setPasswordController = async (req: Request, res: Response) => {
     const { password } = parsed.body;
 
     await setPasswordService(token, password);
-    return res.json({success: true, message: "Password set successfully"});
+    return res.json({success: true, message: MESSAGES.PASSWORD_SET_SUCCESS});
   } catch (error) {
     return handleControllerError(res, error);
   }

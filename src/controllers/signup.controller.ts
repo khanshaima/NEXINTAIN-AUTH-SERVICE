@@ -1,6 +1,4 @@
 import { Request, Response } from "express";
-import bcrypt from "bcrypt";
-import { z } from "zod";
 import { createUserSchema } from "../validators/user.validators";
 import { signupUser } from "../services/signup.service";
 import { DEFAULT_COUNTRY_CODE } from "../constants/auth.constants";
