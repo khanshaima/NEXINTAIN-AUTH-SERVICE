@@ -19,3 +19,16 @@ export const loginWithEmailSchema = z.object({
 export const refreshSchema = z.object({
   refreshToken: z.string().min(1, "Refresh token is required"),
 });
+
+export const googleCallbackQuerySchema = z.object({
+  code: z.string().min(1, "Google auth code is required"),
+});
+
+export const setPasswordSchema = z.object({
+  query: z.object({
+    token: z.string().min(1, "Token required"),
+  }),
+  body: z.object({
+    password: z.string().min(8, "Password required"),
+  }),
+});

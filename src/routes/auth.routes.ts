@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { sendOtpController, verifyOtpController, loginWithEmailController, refreshTokenController, googleAuthUrlController, googleAuthCallbackController } from '../controllers/auth.controller';
+import { sendOtpController, verifyOtpController, loginWithEmailController, refreshTokenController, googleAuthUrlController, googleAuthCallbackController, setPasswordController } from '../controllers/auth.controller';
 import { createRateLimiter } from "../middlewares/rateLimiter";
 
 const router = Router();
@@ -12,6 +12,8 @@ router.post("/email/refresh",createRateLimiter(5, 5), refreshTokenController);
 
 router.get("/google/url",createRateLimiter(10, 5), googleAuthUrlController);
 router.get("/google/callback", createRateLimiter(10, 5), googleAuthCallbackController);
+
+router.post("/set-password", setPasswordController);
 
 router.get('/test', (req, res) => {
   res.json({ ok: true, message: 'Auth route working' });

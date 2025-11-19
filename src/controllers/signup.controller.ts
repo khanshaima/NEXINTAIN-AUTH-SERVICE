@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createUserSchema } from "../validators/user.validators";
 import { signupUser } from "../services/signup.service";
 import { DEFAULT_COUNTRY_CODE } from "../constants/auth.constants";
+import { handleControllerError } from "../utils/handleControllerError";
 
 export const signupController = async (req: Request, res: Response) => {
   try {
@@ -20,11 +21,7 @@ export const signupController = async (req: Request, res: Response) => {
       user: { name: user?.name, email: user?.email, mobile_number: user?.mobile_number },
     });
 
-  } catch (err: any) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ success: false, errors: err?.issues });
-    }
-    console.error(err);
-    return res.status(500).json({ success: false, message: err.message || "Internal server error" });
+  } catch (error: unknown) {
+    return handleControllerError(res, error);
   }
 };

@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
-import { loginWithEmailSchema, sendOtpSchema, verifyOtpSchema, refreshSchema } from "../validators/auth.validators";
-import { loginWithEmail, sendMobileOtp, verifyMobileOtp, refreshTokens } from "../services/auth.service";
-import { DEFAULT_COUNTRY_CODE } from "../constants/auth.constants";
-import { z } from "zod";
+import { loginWithEmailSchema, sendOtpSchema, verifyOtpSchema, refreshSchema, googleCallbackQuerySchema, setPasswordSchema } from "../validators/auth.validators";
+import { loginWithEmail, sendMobileOtp, verifyMobileOtp, refreshTokens, setPasswordService } from "../services/auth.service";
+import { DEFAULT_COUNTRY_CODE, GOOGLE_ACCOUNT_BASE_URL, GOOGLE_SCOPE } from "../constants/auth.constants";
 import { Tokens, GoogleUser } from "../types/auth.types";
 import { OAuth2Client } from "google-auth-library";
 import { ENV } from "../config/env";
 import { googleLoginOrSignupWithGoogleData } from "../services/googleAuth.service";
 import { google } from "googleapis";
+import { handleControllerError } from "../utils/handleControllerError";
 
 const client = new OAuth2Client(
   ENV.GOOGLE_CLIENT_ID,
@@ -26,12 +26,8 @@ export const sendOtpController = async (req: Request, res: Response) => {
       expiresAt
     });
 
-  } catch (error) {
-    console.error("Error in sendOtpController:", error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, errors: error?.issues });
-    }
-    return res.status(400).json({ success: false, error });
+  } catch (error: unknown) {
+    return handleControllerError(res, error);
   }
 };
 
@@ -47,11 +43,8 @@ export const verifyOtpController = async (req: Request, res: Response) => {
 
     return res.json({ success: true, message: `OTP verified, Welcome ${user.name??'New User, please sign up'}.` });
 
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, errors: error?.issues });
-    }
-    return res.status(400).json({ success: false, error });
+  } catch (error: unknown ) {
+    return handleControllerError(res, error);
   }
 };
 
@@ -65,12 +58,8 @@ export const loginWithEmailController = async (req: Request, res: Response) => {
       data: { accessToken, refreshToken, name  } 
     });
 
-  } catch (error) {
-    console.error("Error in loginWithEmailController:", error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, errors: error?.issues });
-    }
-    return res.status(400).json({ success: false, error });
+  } catch (error: unknown) {
+    return handleControllerError(res, error);
   }
 };
 
@@ -81,30 +70,27 @@ export const refreshTokenController = async (req: Request, res: Response) => {
     const tokens: Tokens = await refreshTokens(refreshToken);
 
     res.json({ success: true, ...tokens });
-  } catch (err: any) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ success: false, errors: err?.issues });
-    }
-    return res.status(401).json({ success: false, message: err.message });
+  } catch (error: unknown) {
+    return handleControllerError(res, error);
   }
 };
 
 // Step 1: Redirect user to Google consent page
 export const googleAuthUrlController = (req: Request, res: Response) => {
-    const scope = [
-    "https://www.googleapis.com/auth/userinfo.email",
-    "https://www.googleapis.com/auth/userinfo.profile"
-  ].join(" ") ;
+  try {
+  const scope = GOOGLE_SCOPE;
 
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${process.env.BACKEND_URL}/auth/google/callback&scope=${scope}&access_type=offline`;
-
+  const url = `${GOOGLE_ACCOUNT_BASE_URL}?response_type=code&client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${process.env.BACKEND_URL}/auth/google/callback&scope=${scope}&access_type=offline`;
+    
   res.json({ success: true, message:"Please verify using the url",url });
+  } catch (error: unknown) {
+    return handleControllerError(res, error);
+  }
 };
 
 export const googleAuthCallbackController = async (req: Request, res: Response) => {
   try {
-    const code = req.query.code as string;
-    if (!code) throw new Error("Google auth code missing");
+   const { code } = googleCallbackQuerySchema.parse(req.query);
 
     const { tokens } = await client.getToken(code);
     client.setCredentials(tokens);
@@ -124,8 +110,24 @@ export const googleAuthCallbackController = async (req: Request, res: Response) 
       user: { id: result.user._id, email: result.user.email, name: result.user.name },
       googleUser,
     });
-  } catch (err: any) {
-    console.error(err);
-    res.status(400).json({ success: false, message: err.message });
+  } catch (error: unknown) {
+    return handleControllerError(res, error);
+  }
+};
+
+export const setPasswordController = async (req: Request, res: Response) => {
+  try {
+    const parsed = setPasswordSchema.parse({
+      query: req.query,
+      body: req.body,
+    });
+
+    const { token } = parsed.query;
+    const { password } = parsed.body;
+
+    await setPasswordService(token, password);
+    return res.json({success: true, message: "Password set successfully"});
+  } catch (error) {
+    return handleControllerError(res, error);
   }
 };

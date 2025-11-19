@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { DEFAULT_COUNTRY_CODE } from "../constants/auth.constants";
-import { PassThrough } from "stream";
 
 export const createUserSchema = z
   .object({
